@@ -1,0 +1,31 @@
+name: Auto-update File
+
+on:
+  schedule:
+    - cron: '0 17 * * *'
+  workflow_dispatch:
+
+jobs:
+  update_timestamp_job:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Update update.txt
+        run: echo "Last update on $(date -u)" > update.txt
+
+      - name: Commit and push if there are changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add update.txt
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: 🤖 Update time file"
+            git push
+          else
+            echo "No changes to commit."
+          fi
