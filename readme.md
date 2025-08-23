@@ -39,14 +39,14 @@
 
 ```bash
 # Download and run the installer
-curl -fsSL https://raw.githubusercontent.com/skydashnet/GenieACS-Auto-Installer/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/skydashnet/GenieACS-Auto-Installer/main/genieacs-arch.sh | sudo bash
 ```
 
 ### For Ubuntu / Debian
 
 ```bash
 # Download and run the installer
-curl -fsSL https://raw.githubusercontent.com/skydashnet/GenieACS-Auto-Installer/main/install-ubuntu.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/skydashnet/GenieACS-Auto-Installer/main/genieacs-ubuntu.sh | sudo bash
 ```
 
 ---
@@ -59,26 +59,26 @@ If you prefer to download and inspect the script first:
 
 ```bash
 # Download the script
-wget https://raw.githubusercontent.com/skydashnet/GenieACS-Auto-Installer/main/install.sh
+wget https://raw.githubusercontent.com/skydashnet/GenieACS-Auto-Installer/main/genieacs-arch.sh
 
 # Make it executable
-chmod +x install.sh
+chmod +x genieacs-arch.sh
 
 # Run with sudo
-sudo ./install.sh
+sudo ./genieacs-arch.sh
 ```
 
 ### Ubuntu / Debian
 
 ```bash
 # Download the script
-wget https://raw.githubusercontent.com/skydashnet/GenieACS-Auto-Installer/main/install-ubuntu.sh
+wget https://raw.githubusercontent.com/skydashnet/GenieACS-Auto-Installer/main/genieacs-ubuntu.sh
 
 # Make it executable
-chmod +x install-ubuntu.sh
+chmod +x genieacs-ubuntu.sh
 
 # Run with sudo
-sudo ./install-ubuntu.sh
+sudo ./genieacs-ubuntu.sh
 ```
 
 ---
