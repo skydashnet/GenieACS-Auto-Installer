@@ -126,33 +126,76 @@ else
 fi
 
 if [ "$mongodb_installed" = false ]; then
-    echo -e "${YELLOW}Installing Redis...${RESET}"
+    valkey_installed=false
     
-    if apt install -y redis-server >/dev/null 2>&1; then
-        systemctl enable redis-server >/dev/null 2>&1
-        systemctl start redis-server >/dev/null 2>&1
-        sleep 2
+    if [[ "$ubuntu_version" =~ ^(24.04|24.10)$ ]] || [[ $(echo "$ubuntu_version" | cut -d. -f1) -ge 24 ]]; then
+        echo -e "${YELLOW}Installing Valkey (Redis-compatible)...${RESET}"
         
-        if redis-cli ping 2>/dev/null | grep -q PONG; then
-            echo -e "${GREEN}Redis installed and running successfully!${NC}"
-            database_type="redis"
+        if apt install -y valkey >/dev/null 2>&1; then
+            systemctl enable valkey >/dev/null 2>&1
+            systemctl start valkey >/dev/null 2>&1
+            sleep 2
+            
+            if valkey-cli ping 2>/dev/null | grep -q PONG; then
+                echo -e "${GREEN}Valkey installed and running successfully!${NC}"
+                database_type="valkey"
+                valkey_installed=true
+            elif redis-cli -p 6379 ping 2>/dev/null | grep -q PONG; then
+                echo -e "${GREEN}Valkey installed and running (accessible via redis-cli)!${NC}"
+                database_type="valkey"
+                valkey_installed=true
+            else
+                echo -e "${YELLOW}Valkey needs configuration adjustment...${NC}"
+                
+                mkdir -p /var/lib/valkey
+                chown valkey:valkey /var/lib/valkey 2>/dev/null || true
+                systemctl restart valkey >/dev/null 2>&1
+                sleep 2
+                
+                if valkey-cli ping 2>/dev/null | grep -q PONG || redis-cli -p 6379 ping 2>/dev/null | grep -q PONG; then
+                    echo -e "${GREEN}Valkey is now working!${NC}"
+                    database_type="valkey"
+                    valkey_installed=true
+                else
+                    echo -e "${YELLOW}Valkey installed but may need manual configuration. Trying Redis fallback...${NC}"
+                fi
+            fi
         else
-            sed -i 's/^bind 127.0.0.1 ::1/bind 127.0.0.1/' /etc/redis/redis.conf 2>/dev/null || true
-            sed -i 's/^# requirepass/requirepass/' /etc/redis/redis.conf 2>/dev/null || true
-            systemctl restart redis-server >/dev/null 2>&1
+            echo -e "${YELLOW}Valkey installation failed. Trying Redis fallback...${NC}"
+        fi
+    else
+        echo -e "${YELLOW}Valkey not available for Ubuntu $ubuntu_version. Using Redis...${NC}"
+    fi
+    
+    if [ "$valkey_installed" = false ]; then
+        echo -e "${YELLOW}Installing Redis...${RESET}"
+        
+        if apt install -y redis-server >/dev/null 2>&1; then
+            systemctl enable redis-server >/dev/null 2>&1
+            systemctl start redis-server >/dev/null 2>&1
             sleep 2
             
             if redis-cli ping 2>/dev/null | grep -q PONG; then
-                echo -e "${GREEN}Redis is now working!${NC}"
+                echo -e "${GREEN}Redis installed and running successfully!${NC}"
                 database_type="redis"
             else
-                echo -e "${YELLOW}Redis installed but may need manual configuration.${NC}"
-                database_type="redis"
+                sed -i 's/^bind 127.0.0.1 ::1/bind 127.0.0.1/' /etc/redis/redis.conf 2>/dev/null || true
+                sed -i 's/^# requirepass/requirepass/' /etc/redis/redis.conf 2>/dev/null || true
+                systemctl restart redis-server >/dev/null 2>&1
+                sleep 2
+                
+                if redis-cli ping 2>/dev/null | grep -q PONG; then
+                    echo -e "${GREEN}Redis is now working!${NC}"
+                    database_type="redis"
+                else
+                    echo -e "${YELLOW}Redis installed but may need manual configuration.${NC}"
+                    database_type="redis"
+                fi
             fi
+        else
+            echo -e "${RED}Failed to install Redis. Installation cannot continue.${NC}"
+            exit 1
         fi
-    else
-        echo -e "${RED}Failed to install Redis. Installation cannot continue.${NC}"
-        exit 1
     fi
 fi
 
@@ -175,7 +218,7 @@ GENIEACS_UI_JWT_SECRET=secret
 GENIEACS_UI_PORT=$ui_port
 EOF
 
-if [ "$database_type" = "redis" ]; then
+if [ "$database_type" = "redis" ] || [ "$database_type" = "valkey" ]; then
     echo "GENIEACS_REDIS_HOST=127.0.0.1" >> /opt/genieacs/genieacs.env
     echo "GENIEACS_REDIS_PORT=6379" >> /opt/genieacs/genieacs.env
 fi
